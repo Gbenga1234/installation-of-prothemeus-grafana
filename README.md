@@ -100,7 +100,7 @@ The `grafana.yml` chart in this repo configures the service type as `LoadBalance
 Default credentials (as configured in `grafana.yml` for example purposes):
 
 - Username: `admin`
-- Password: `admin123` (change this in production or use a secret)
+- Password: `admin1234` (change this in production or use a secret)
 
 ---
 

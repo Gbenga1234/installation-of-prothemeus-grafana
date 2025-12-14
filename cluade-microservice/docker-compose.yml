@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: consulting-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: consulting_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./k8s/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: consulting-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: gateway-service
+    ports:
+      - "3000:3000"
+    environment:
+      GATEWAY_PORT: "3000"
+      REDIS_URL: "redis:6379"
+    depends_on:
+      redis:
+        condition: service_healthy
+      auth:
+        condition: service_started
+      consulting:
+        condition: service_started
+      booking:
+        condition: service_started
+
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile.auth
+    container_name: auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      AUTH_PORT: "3001"
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/consulting_db?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  consulting:
+    build:
+      context: .
+      dockerfile: Dockerfile.consulting
+    container_name: consulting-service
+    ports:
+      - "3002:3002"
+    environment:
+      CONSULTING_PORT: "3002"
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/consulting_db?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  booking:
+    build:
+      context: .
+      dockerfile: Dockerfile.booking
+    container_name: booking-service
+    ports:
+      - "3003:3003"
+    environment:
+      BOOKING_PORT: "3003"
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/consulting_db?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: consulting-network

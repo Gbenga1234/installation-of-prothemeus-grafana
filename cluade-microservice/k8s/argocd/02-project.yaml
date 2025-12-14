@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: consulting
+  namespace: argocd
+spec:
+  sourceRepos:
+  - "https://github.com/your-org/consulting-platform"
+  destinations:
+  - namespace: "*"
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
